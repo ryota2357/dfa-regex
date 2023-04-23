@@ -1,6 +1,6 @@
 use crate::lexer::*;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Node {
     Character(char),
     Empty,
@@ -79,9 +79,9 @@ impl Parser<'_> {
         }
     }
 
-    /// sub_sequence := star sub_sequence | star
+    /// sub_sequence := factor_set sub_sequence | star
     fn sub_sequence(&mut self) -> Result<Node> {
-        let star = self.star();
+        let star = self.factor_set();
         match &self.look {
             Token::LeftParen | Token::Character(_) => Ok(Node::Concat(
                 Box::new(star?),
@@ -91,13 +91,21 @@ impl Parser<'_> {
         }
     }
 
-    /// star := factor '*' | factor
-    fn star(&mut self) -> Result<Node> {
+    /// factor_set := factor '*' | factor '+' | factor
+    fn factor_set(&mut self) -> Result<Node> {
         let factor = self.factor();
         match &self.look {
             Token::StarOperator => {
                 self.match_next(Token::StarOperator)?;
                 Ok(Node::Star(Box::new(factor?)))
+            }
+            Token::PlusOperator => {
+                self.match_next(Token::PlusOperator)?;
+                let factor = factor?;
+                Ok(Node::Concat(
+                    Box::new(factor.clone()),
+                    Box::new(Node::Star(Box::new(factor))),
+                ))
             }
             _ => factor,
         }
@@ -153,6 +161,25 @@ mod tests {
             Ok(Node::Union(
                 Box::new(Node::Character('a')),
                 Box::new(Node::Empty)
+            ))
+        );
+    }
+
+    #[test]
+    fn expression3() {
+        let mut parser = Parser::new(Lexer::new(r"(a|b)+"));
+        // (a|b)(a|b)*
+        assert_eq!(
+            parser.expression(),
+            Ok(Node::Concat(
+                Box::new(Node::Union(
+                    Box::new(Node::Character('a')),
+                    Box::new(Node::Character('b'))
+                )),
+                Box::new(Node::Star(Box::new(Node::Union(
+                    Box::new(Node::Character('a')),
+                    Box::new(Node::Character('b'))
+                ))))
             ))
         );
     }

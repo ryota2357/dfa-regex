@@ -6,6 +6,7 @@ pub enum Token {
     Character(char),
     UnionOperator,
     StarOperator,
+    PlusOperator,
     LeftParen,
     RightParen,
     EndOfFile,
@@ -17,6 +18,7 @@ impl Display for Token {
             Token::Character(_) => "Character",
             Token::UnionOperator => "|",
             Token::StarOperator => "*",
+            Token::PlusOperator => "+",
             Token::LeftParen => "(",
             Token::RightParen => ")",
             Token::EndOfFile => "EOF",
@@ -46,6 +48,7 @@ impl Lexer<'_> {
             '(' => Token::LeftParen,
             ')' => Token::RightParen,
             '*' => Token::StarOperator,
+            '+' => Token::PlusOperator,
             _ => Token::Character(char),
         }
     }
